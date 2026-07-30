@@ -17,12 +17,14 @@ from limnifs.error import ParseError
 from limnifs.feature_flags import parse_feature_flags_section
 from limnifs.header import parse_manifest_header
 from limnifs.history import parse_history_section
+from limnifs.inode import ContentHandleKind
 from limnifs.merkle import (
     SectionHashes,
     compute_merkle_root,
     hash_empty_section,
     hash_section,
 )
+from limnifs.metadata import parse_metadata_blob
 from limnifs.metadata_reference import parse_metadata_reference_section
 from limnifs.slab_index import parse_slab_index_section
 
@@ -30,6 +32,50 @@ from limnifs.slab_index import parse_slab_index_section
 def _read_file(path: Path) -> bytes:
     with path.open("rb") as fp:
         return fp.read()
+
+
+def _content_handle_kind_tag(kind: ContentHandleKind) -> int:
+    return {
+        ContentHandleKind.INLINE_DATA: 1,
+        ContentHandleKind.SLICE_MAP: 2,
+        ContentHandleKind.DIRECTORY: 3,
+        ContentHandleKind.SYMLINK: 4,
+        ContentHandleKind.DEVICE: 5,
+        ContentHandleKind.PIPE: 6,
+    }[kind]
+
+
+def _metadata_summary(blob_bytes: bytes) -> dict[str, object]:
+    blob = parse_metadata_blob(Cursor(blob_bytes))
+    inodes = sorted(
+        (
+            {
+                "number": i.number,
+                "mode": i.mode,
+                "kind": _content_handle_kind_tag(i.content_handle.kind),
+            }
+            for i in blob.inodes
+        ),
+        key=lambda d: d["number"],
+    )
+    dir_nodes = sorted(
+        (
+            {
+                "entries": len(n.entries),
+                "first": n.entries[0].name if n.entries else "",
+            }
+            for n in blob.dir_nodes
+        ),
+        key=lambda d: (d["entries"], d["first"]),
+    )
+    root = blob.root_inode_number()
+    return {
+        "metadata_inode_count": len(blob.inodes),
+        "metadata_dir_node_count": len(blob.dir_nodes),
+        "metadata_root_inode": root,
+        "metadata_inodes": inodes,
+        "metadata_dir_nodes": dir_nodes,
+    }
 
 
 def _verify_bytes(buf: bytes) -> dict[str, object]:
@@ -94,7 +140,7 @@ def _verify_bytes(buf: bytes) -> dict[str, object]:
     )
     merkle_root = compute_merkle_root(section_hashes)
 
-    return {
+    report: dict[str, object] = {
         "magic": "LMFS",
         "drop_store_version": header.drop_store_version,
         "metadata_version": header.metadata_version,
@@ -108,6 +154,14 @@ def _verify_bytes(buf: bytes) -> dict[str, object]:
         "extra_bytes_after_history": extra_bytes_after_history,
         "merkle_root": str(merkle_root),
     }
+
+    if metadata_reference.is_inlined and metadata_reference.inline_metadata:
+        try:
+            report.update(_metadata_summary(metadata_reference.inline_metadata))
+        except ParseError:
+            pass
+
+    return report
 
 
 def _print_human(path: Path, report: dict[str, object]) -> None:
