@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from limnifs.builder import ManifestArtifact, ManifestBuilder, ManifestSpec
 from limnifs.cursor import Cursor
+from limnifs.drop_record import DROP_RECORD_LEN, DropRecord, parse_drop_record
 from limnifs.error import ParseError
 from limnifs.feature_flags import FeatureFlag, FeatureFlags, parse_feature_flags_section
 from limnifs.format_types import DropId, ManifestRoot, Representation, SlabId, Tier
@@ -37,12 +38,25 @@ from limnifs.merkle import (
     hash_section,
 )
 from limnifs.metadata_reference import MetadataReference, parse_metadata_reference_section
+from limnifs.slab_header import (
+    DEFAULT_SLAB_MAX_BYTES,
+    SLAB_FORMAT_VERSION,
+    SLAB_HEADER_LEN,
+    SlabHeader,
+    parse_slab_header,
+)
 from limnifs.slab_index import SlabIndex, SlabIndexEntry, parse_slab_index_section
+from limnifs.slab_reader import SlabView, parse_slab
 
 __all__ = [
+    "DEFAULT_SLAB_MAX_BYTES",
+    "DROP_RECORD_LEN",
     "MERKLE_DOMAIN_SEPARATOR",
+    "SLAB_FORMAT_VERSION",
+    "SLAB_HEADER_LEN",
     "Cursor",
     "DropId",
+    "DropRecord",
     "FeatureFlag",
     "FeatureFlags",
     "History",
@@ -57,16 +71,21 @@ __all__ = [
     "ParseError",
     "Representation",
     "SectionHashes",
+    "SlabHeader",
     "SlabId",
     "SlabIndex",
     "SlabIndexEntry",
+    "SlabView",
     "Tier",
     "compute_merkle_root",
     "hash_empty_section",
     "hash_section",
+    "parse_drop_record",
     "parse_feature_flags_section",
     "parse_history_section",
     "parse_manifest_header",
     "parse_metadata_reference_section",
+    "parse_slab",
+    "parse_slab_header",
     "parse_slab_index_section",
 ]
