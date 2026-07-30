@@ -51,6 +51,21 @@ def _verify_bytes(buf: bytes) -> dict[str, object]:
     slab_index = parse_slab_index_section(cursor)
     slab_index_end = cursor.position
 
+    # Optional sections based on feature flags.
+    ec_params_start = cursor.position
+    has_ec = flags.get(0x0001) is not None
+    if has_ec:
+        from limnifs.ec_params import parse_ec_params_section
+        parse_ec_params_section(cursor)
+    ec_params_end = cursor.position
+
+    dms_policy_start = cursor.position
+    has_dms = flags.get(0x0002) is not None
+    if has_dms:
+        from limnifs.dms_policy import parse_dms_policy_section
+        parse_dms_policy_section(cursor)
+    dms_policy_end = cursor.position
+
     history_start = cursor.position
     history = parse_history_section(cursor)
     history_end = cursor.position
@@ -64,8 +79,16 @@ def _verify_bytes(buf: bytes) -> dict[str, object]:
         metadata_reference=hash_section(buf[meta_ref_start:meta_ref_end]),
         slab_index=hash_section(buf[slab_index_start:slab_index_end]),
         crypto_params=hash_empty_section(),
-        ec_params=hash_empty_section(),
-        dms_policy=hash_empty_section(),
+        ec_params=(
+            hash_section(buf[ec_params_start:ec_params_end])
+            if has_ec
+            else hash_empty_section()
+        ),
+        dms_policy=(
+            hash_section(buf[dms_policy_start:dms_policy_end])
+            if has_dms
+            else hash_empty_section()
+        ),
         delta_linkage=hash_empty_section(),
         history=hash_section(buf[history_start:history_end]),
     )
