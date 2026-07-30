@@ -23,6 +23,7 @@ parser focuses on its own structural invariants.
 from __future__ import annotations
 
 from limnifs.builder import ManifestArtifact, ManifestBuilder, ManifestSpec
+from limnifs.codec import CODEC_LZ4, CODEC_STORE, compress, compress_lz4_with_size, decompress
 from limnifs.cursor import Cursor
 from limnifs.drop_record import DROP_RECORD_LEN, DropRecord, parse_drop_record
 from limnifs.error import ParseError
@@ -49,6 +50,8 @@ from limnifs.slab_index import SlabIndex, SlabIndexEntry, parse_slab_index_secti
 from limnifs.slab_reader import SlabView, parse_slab
 
 __all__ = [
+    "CODEC_LZ4",
+    "CODEC_STORE",
     "DEFAULT_SLAB_MAX_BYTES",
     "DROP_RECORD_LEN",
     "MERKLE_DOMAIN_SEPARATOR",
@@ -77,7 +80,10 @@ __all__ = [
     "SlabIndexEntry",
     "SlabView",
     "Tier",
+    "compress",
+    "compress_lz4_with_size",
     "compute_merkle_root",
+    "decompress",
     "hash_empty_section",
     "hash_section",
     "parse_drop_record",
