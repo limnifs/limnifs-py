@@ -17,6 +17,29 @@ jobs:
     name: No-shims gate
     uses: limnifs/.github/.github/workflows/no-shims-gate.yml@main
 
+  # Big-endian ISAs under qemu: the reference reader is the
+  # spec-sufficiency oracle, so exercising it on ppc64le/s390x
+  # catches endian assumptions the native matrix never would.
+  # Pure Python — nothing compiles; the suite just runs emulated.
+  qemu-arch:
+    name: Python (${{ matrix.arch }}, qemu)
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [ppc64le, s390x]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Test under emulation
+        run: |
+          docker run --rm --platform linux/${{ matrix.arch }} \
+            -v "$PWD:/src" -w /src python:3.12-slim \
+            bash -lc 'pip install --quiet pytest blake3 lz4 && pip install --quiet . && pytest -v'
+
   python:
     name: Python matrix
     uses: limnifs/.github/.github/workflows/python-ci.yml@main
